@@ -6,6 +6,7 @@ from __future__ import absolute_import
 import pandas as pd
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 
 def reduce_mem_usage(df, verbose=True):
     numerics = ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']
@@ -56,3 +57,43 @@ def load_data(folder_path = None, file_path = None, reduce_mem_usage_ = True, dt
                 if reduce_mem_usage_:
                     test = reduce_mem_usage(test,verbose=True)
         return train, test   
+    
+def print_details(df, target_feature = None):
+    
+    print("Total number of samples: ",len(df))
+    print("Total number of features: ", df.shape[1])
+    print("Total number of categorical features: ", df.select_dtypes(include=["object"]).shape[1])
+    print("Total number of numerical features: ",df.select_dtypes(exclude=["object"]).shape[1])
+    
+    if target_feature:
+        print("Total unique values in target class: ",df[target_feature].nunique())
+        print("Target Class Distribution:")
+        print(df[target_feature].value_counts()[:10]/len(df))
+    print(df.describe())
+    
+def get_details(df):
+    df_info = pd.DataFrame(columns = ['feature_name','nunique',
+                                      'missing_value_per','majority_class_per',
+                                      'dtype'])
+    for i,col in enumerate(df.columns.tolist()):
+        df_info.loc[i] = {"feature_name": col ,
+                          "nunique": df[col].nunique,
+                          "missing_value_per": df[col].isnull().sum()/len(df),
+                          "majority_class_per": df[col].value_counts().iloc[0]/len(df),
+                          "dtype":df[col].dtypes}
+    df_info['feature_name'] = df.columns.tolist()
+    df_info['nunique'] = [df[col].nunique() for col in df.columns.tolist()]
+    df_info['missing_value_per'] = [df[col].isnull().sum()/len(df) for col in df.columns.tolist()]
+    
+    return df_info
+
+def data_clean(df):
+    
+    # duplicate columns
+    df = df.T.drop_duplicates(keep='first').T
+    
+    # constant columns
+    cols = df.columns.tolist()
+    cols.remove([c for c in cols if df[c].nunique(dropna=False) == 1])
+    df = df[cols]
+    return df
